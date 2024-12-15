@@ -15,7 +15,8 @@ def get_dir():
     :return: [(индекс, имя папки),]
     '''
     root_dir = [dirs for root, dirs, files in os.walk(os.getcwd())][0]
-    dirs = [dir for dir in root_dir if dir != '.venv' and dir != '.idea' and dir != '__pycache__']  # старая версия
+    # dirs = [dir for dir in root_dir if dir != '.venv' and dir != '.idea' and dir != '__pycache__']  # старая версия
+    dirs = [dir for dir in root_dir if not dir.startswith('.') and not dir.startswith('_')]
     indexes = [index + 1 for index in range(len(dirs))]
     dirs_dist = list(zip(indexes, dirs))
     return dirs_dist
