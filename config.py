@@ -1,7 +1,7 @@
 from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
-api = ''
+api = '7637310586:AAGLNG7bJd_kmuumSxGpAYesn5MmFJwMgyg'
 bot = Bot(token=api)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
@@ -11,4 +11,6 @@ dirname = None
 filename = None
 filedict = {}
 dirlist = []
+
+images_extentions = ['.jpg', '.jpe', '.jfif', '.jpeg', '.png', '.bmp']
 

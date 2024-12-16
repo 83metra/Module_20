@@ -25,6 +25,7 @@ class PathAttr(StatesGroup):
 async def hallo(message):
     await message.answer(start, reply_markup=kb)
     funcs.set_default_dir(default_dir)
+    funcs.delete_all_files(default_dir)
     funcs.set_default()
 
 
@@ -59,8 +60,9 @@ async def select_file(call):
     file_list = funcs.files_to_conversion_1(dirname)
     if len(file_list) > 0:
         for index, file in file_list.items():
+            name = funcs.is_file_endswith(file[0])
             filedict.update({index: (file[0], file[1])})
-            await call.message.answer(f'/{index} - {file[0]}.{file[1]}')
+            await call.message.answer(f'/{index} - {name}.{file[1]}')
             await PathAttr.filename.set()
     else:
         await call.message.answer('В папке 📂 %s нет изображений, выберите другую.' % (dirname), reply_markup=seldir)
@@ -73,13 +75,14 @@ async def convert_one_file(message, state):
     global filename
     awaited_filename = await state.get_data()
     for index, file in filedict.items():
+        name = funcs.is_file_endswith(file[0])
         if str(index) == awaited_filename['filename'][1:] or awaited_filename['filename'] == f'{file[0]}.{file[1]}':
             filename = file
-            await message.answer(f"Конвертируем файл {filename[0]}.{filename[1]} в папке 📂 {dirname}.")
+            await message.answer(f"Конвертируем файл {name}.{filename[1]} в папке 📂 {dirname}.")
             funcs.convert_one_file_to_pdf(dirname, filename)
-            await message.answer(f"Файл {filename[0]}.pdf в папке 📂 {dirname} готов!", reply_markup=download_one)
+            await message.answer(f"Файл {name}.pdf в папке 📂 {dirname} готов!", reply_markup=download_one)
             await state.finish()
-            funcs.delete_all_files(dirname)
+            # funcs.delete_all_files(dirname)
     if filename is None:
         await message.reply(f'Такого файла в папке 📂 {dirname} нет!')
 
@@ -145,8 +148,10 @@ async def multipdf(call):
 
 @dp.message_handler(text='Загрузить изображения для конвертации')
 async def upload_files_to_bot(message):
+    global dirname
+    dirname = default_dir
     await message.answer(f"Загружайте изображения как документ. "
-                         f"Все изображения будут загружены в папку 📂 {default_dir}, "
+                         f"Все изображения будут загружены в папку 📂 {dirname}, "
                          f"когда будете готовы, нажмите кнопку под сообщением.")
 
 
@@ -159,23 +164,22 @@ async def sending_merged_pdf(call):
     await call.message.reply_document(response_file, reply_markup=kb)
     await call.answer()
     funcs.set_default()
-    funcs.delete_all_files(dirname)
 
 
 @dp.callback_query_handler(text='download_one')
 async def download_one_file_pdf(call):
     global dirname
     global filename
-    await call.message.answer(f"Загружаем файл '{filename[0]}.pdf' из папки 📂 {dirname}...")
+    name = funcs.is_file_endswith(filename[0])
+    await call.message.answer(f"Загружаем файл '{name}.pdf' из папки 📂 {dirname}...")
     local_file_path = os.path.join(f'{dirname}', f"{filename[0]}.pdf")
     try:
-
-        await call.message.reply(local_file_path)
+        await call.message.reply(f'Ищем файл {name}.pdf...')
         response_file = InputFile(local_file_path)
         await call.message.reply_document(response_file, reply_markup=kb)
         await call.answer()
     except FileNotFoundError:
-        await call.message.reply(f'Файла {filename[0]}.pdf в папке нет.\n'
+        await call.message.reply(f'Файла {name}.pdf в папке нет.\n'
                                  f'Скорее всего, он был загружен во временную папку 📂 {dirname}\n'
                                  f'Загружайте в неё изображения по одному и конвертируйте сразу.\n'
                                  f'Или загружайте сразу несколько и получите на выходе многостраничный pdf.')
@@ -198,23 +202,37 @@ async def select_action(message, state):
         await state.finish()
 
 
+
 @dp.message_handler(content_types=types.ContentType.DOCUMENT)
 async def download_image(message):
-    try:
-        photo = message.document
-        file_info = await bot.get_file(photo.file_id)
-        file_name = photo['file_name']
-        file_path = file_info.file_path
-        await message.answer(
-            f"Изображения загружены в папку 📂 {default_dir}. Можно загрузить ещё, либо конвертировать.",
-            reply_markup=convert_in_folder_images)
+    photo = message.document
+    if photo['mime_type'] == "image/jpeg":
+        try:
+            photo = message.document
+            print(photo)
+            file_info = await bot.get_file(photo.file_id)
+            file_name = photo['file_name']
+            file_path = file_info.file_path
+            if dirname == default_dir:
+                await message.answer(f"Изображения загружены в папку  по умолчанию 📂 {dirname}.\n"
+                                     f"Можно загрузить ещё файл, либо конвертировать.",
+                                     reply_markup=kb_2)
 
-        # бот сохраняет файл на диске
-        local_file_path = os.path.join(f'{default_dir}', f"{file_name}.jpg")
-        await bot.download_file(file_path, local_file_path)
-    except FileIsTooBig as e:
-        await message.answer(f'Ошибка: {e}\nФайл слишком большой.')
+                # бот сохраняет файл на диске
+                local_file_path = os.path.join(f'{default_dir}', f"{file_name}.jpg")
+                await bot.download_file(file_path, local_file_path)
+            else:
+                await message.answer(f"Изображения загружены в папку 📂 {dirname}. \n"
+                                     f"Можно загрузить ещё, либо конвертировать.",
+                                     reply_markup=convert_in_folder_images)
 
+                # бот сохраняет файл на диске
+                local_file_path = os.path.join(f'{default_dir}', f"{file_name}.jpg")
+                await bot.download_file(file_path, local_file_path)
+        except FileIsTooBig as e:
+            await message.answer(f'Ошибка: {e}\nФайл слишком большой.')
+    else:
+        await message.answer('Кажется, Вы отправили что-то не то!..\nНужно отправить изображение как документ, не сжимая его!')
 
 @dp.message_handler(content_types=types.ContentType.PHOTO)
 async def handle_photo(message: types.Message):

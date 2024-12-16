@@ -6,9 +6,12 @@ import main
 from PIL import Image
 from PyPDF2 import PdfMerger
 
-from config import default_dir, dirname, dirlist, filedict
+from config import default_dir, dirname, dirlist, filedict, images_extentions
 
 step_by_step_worktime = None
+
+
+
 def get_dir():
     '''
     Функция составляет список папок, где каждой присваивается порядковый индекс
@@ -50,7 +53,7 @@ def files_to_conversion_1(dirpath):
             files_to_convert.update({index: (file[:-4], 'jpg')})
         elif file[-3:] == 'jpe':
             index += 1
-            files_to_convert.update({index: (file[:-4], 'jpg')})
+            files_to_convert.update({index: (file[:-4], 'jpe')})
         elif file[-4:] == 'jfif':
             index += 1
             files_to_convert.update({index: (file[:-5], 'jfif')})
@@ -65,6 +68,19 @@ def files_to_conversion_1(dirpath):
             files_to_convert.update({index: (file[:-4], 'bmp')})
     os.chdir('../')
     return files_to_convert
+
+def is_file_endswith(filename):
+    '''
+    Функция-костыль принимает имя файла и определяет наличие расширения файла непосредственно в его имени, удаляя его
+    в случае обнаружения. Нужна только для корректного отображения имени файла в боте.
+    :return: возвращая только имя без разрешения
+    '''
+    for name in images_extentions:
+        if name in filename:
+            return filename[:-len(name)]
+        else:
+            return filename
+
 
 
 def convert_one_file_to_pdf(dirname, filename):
@@ -132,7 +148,7 @@ def delete_all_files(dirname):
     :param dirname: имя папки, где лежат изображения для конвертации
     :return:
     '''
-    if dirname == main.default_dir:
+    if dirname == default_dir:
         for filename in os.listdir(dirname):
             file_path = os.path.join(dirname, filename)
             try:
