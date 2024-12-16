@@ -208,8 +208,6 @@ async def download_image(message):
     photo = message.document
     if photo['mime_type'] == "image/jpeg":
         try:
-            photo = message.document
-            print(photo)
             file_info = await bot.get_file(photo.file_id)
             file_name = photo['file_name']
             file_path = file_info.file_path
