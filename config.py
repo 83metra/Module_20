@@ -12,6 +12,7 @@ filename = None
 filedict = {}
 dirlist = []
 
+# Расширения принимаемых изображений и список mim_type'о.
 images_extentions = ['.jpg', '.jpe', '.jfif', '.jpeg', '.png', '.bmp']
 mime_type_list = ["image/jpeg", "image/bmp", "image/png"]
 

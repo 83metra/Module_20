@@ -1,6 +1,6 @@
 from aiogram import executor, types
 from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.utils.exceptions import FileIsTooBig
+from aiogram.utils.exceptions import FileIsTooBig, NetworkError
 import os
 
 from aiogram.types import InputFile
@@ -120,7 +120,8 @@ async def convert_using_threads(call):
 
 @dp.callback_query_handler(text='mltprocess')
 async def convert_using_multiprocessing(call):
-    await call.message.answer(f'Конвертация всех файлов в папке 📂 {dirname} с использованием многопроцессорности...')
+    await call.message.answer(f'Конвертация всех файлов в папке 📂 {dirname} с использованием многопроцессорности...\n'
+                              f'Число ядер процессора: {mltprocess.core}')
     mltprocess.convert_files(dirname)
     await call.message.answer(f'Конвертация всех файлов в папке 📂 {dirname} завершена!\n'
                               f'Время работы:\n {mltprocess.working_time}', reply_markup=end_conversation)
@@ -156,12 +157,15 @@ async def upload_files_to_bot(message):
 @dp.callback_query_handler(text='download_pdf')
 async def sending_merged_pdf(call):
     global dirname
-    await call.message.answer(f"Загружаем многостраничный pdf из папки 📂 {dirname}...")
-    local_file_path = os.path.join(f'{dirname}', f"all_files_from({dirname}).pdf")
-    response_file = InputFile(local_file_path)
-    await call.message.reply_document(response_file, reply_markup=kb)
-    await call.answer()
-    funcs.set_default()
+    try:
+        await call.message.answer(f"Загружаем многостраничный pdf из папки 📂 {dirname}...")
+        local_file_path = os.path.join(f'{dirname}', f"all_files_from({dirname}).pdf")
+        response_file = InputFile(local_file_path)
+        await call.message.reply_document(response_file, reply_markup=kb)
+        await call.answer()
+        funcs.set_default()
+    except NetworkError as e:
+        await call.message.answer(f'Ошибка отправки файла, его размер превышает 50 МБ: {e}!')
 
 
 @dp.callback_query_handler(text='download_one')
