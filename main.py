@@ -60,9 +60,9 @@ async def select_file(call):
     file_list = funcs.files_to_conversion_1(dirname)
     if len(file_list) > 0:
         for index, file in file_list.items():
-            name = funcs.is_file_endswith(file[0])
+            # name = funcs.is_file_endswith(file[0])
             filedict.update({index: (file[0], file[1])})
-            await call.message.answer(f'/{index} - {name}.{file[1]}')
+            await call.message.answer(f'/{index} - {file[0]}.{file[1]}')
             await PathAttr.filename.set()
     else:
         await call.message.answer('В папке 📂 %s нет изображений, выберите другую.' % (dirname), reply_markup=seldir)
@@ -75,12 +75,12 @@ async def convert_one_file(message, state):
     global filename
     awaited_filename = await state.get_data()
     for index, file in filedict.items():
-        name = funcs.is_file_endswith(file[0])
+        # name = funcs.is_file_endswith(file[0])
         if str(index) == awaited_filename['filename'][1:] or awaited_filename['filename'] == f'{file[0]}.{file[1]}':
             filename = file
-            await message.answer(f"Конвертируем файл {name}.{filename[1]} в папке 📂 {dirname}.")
+            await message.answer(f"Конвертируем файл {filename[0]}.{filename[1]} в папке 📂 {dirname}.")
             funcs.convert_one_file_to_pdf(dirname, filename)
-            await message.answer(f"Файл {name}.pdf в папке 📂 {dirname} готов!", reply_markup=download_one)
+            await message.answer(f"Файл {filename[0]}.pdf в папке 📂 {dirname} готов!", reply_markup=download_one)
             await state.finish()
             # funcs.delete_all_files(dirname)
     if filename is None:
@@ -170,16 +170,16 @@ async def sending_merged_pdf(call):
 async def download_one_file_pdf(call):
     global dirname
     global filename
-    name = funcs.is_file_endswith(filename[0])
-    await call.message.answer(f"Загружаем файл '{name}.pdf' из папки 📂 {dirname}...")
+    # name = funcs.is_file_endswith(filename[0])
+    await call.message.answer(f"Загружаем файл '{filename[0]}.pdf' из папки 📂 {dirname}...")
     local_file_path = os.path.join(f'{dirname}', f"{filename[0]}.pdf")
     try:
-        await call.message.reply(f'Ищем файл {name}.pdf...')
+        await call.message.reply(f'Ищем файл {filename[0]}.pdf...')
         response_file = InputFile(local_file_path)
         await call.message.reply_document(response_file, reply_markup=kb)
         await call.answer()
     except FileNotFoundError:
-        await call.message.reply(f'Файла {name}.pdf в папке нет.\n'
+        await call.message.reply(f'Файла {filename[0]}.pdf в папке нет.\n'
                                  f'Скорее всего, он был загружен во временную папку 📂 {dirname}\n'
                                  f'Загружайте в неё изображения по одному и конвертируйте сразу.\n'
                                  f'Или загружайте сразу несколько и получите на выходе многостраничный pdf.')
@@ -209,7 +209,8 @@ async def download_image(message):
     if photo['mime_type'] == "image/jpeg":
         try:
             file_info = await bot.get_file(photo.file_id)
-            file_name = photo['file_name']
+            # file_name = photo['file_name']
+            file_name = funcs.filename_splitter(photo['file_name'])
             file_path = file_info.file_path
             if dirname == default_dir:
                 await message.answer(f"Изображения загружены в папку  по умолчанию 📂 {dirname}.\n"
@@ -217,7 +218,7 @@ async def download_image(message):
                                      reply_markup=kb_2)
 
                 # бот сохраняет файл на диске
-                local_file_path = os.path.join(f'{default_dir}', f"{file_name}.jpg")
+                local_file_path = os.path.join(f'{default_dir}', f"{file_name[0]}.{file_name[1]}")
                 await bot.download_file(file_path, local_file_path)
             else:
                 await message.answer(f"Изображения загружены в папку 📂 {dirname}. \n"
@@ -225,7 +226,7 @@ async def download_image(message):
                                      reply_markup=convert_in_folder_images)
 
                 # бот сохраняет файл на диске
-                local_file_path = os.path.join(f'{default_dir}', f"{file_name}.jpg")
+                local_file_path = os.path.join(f'{default_dir}', f"{file_name[0]}.{file_name[1]}")
                 await bot.download_file(file_path, local_file_path)
         except FileIsTooBig as e:
             await message.answer(f'Ошибка: {e}\nФайл слишком большой.')
