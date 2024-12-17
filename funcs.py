@@ -11,7 +11,6 @@ from config import default_dir, dirname, dirlist, filedict, images_extentions, m
 step_by_step_worktime = None
 
 
-
 def get_dir():
     '''
     Функция составляет список папок, где каждой присваивается порядковый индекс
@@ -36,6 +35,7 @@ def set_default_dir(folder_path):
     else:
         os.mkdir(folder_path)
         return folder_path
+
 
 def files_to_conversion_1(dirpath):
     '''
@@ -70,7 +70,6 @@ def files_to_conversion_1(dirpath):
     return files_to_convert
 
 
-
 def filename_splitter(filename):
     '''
     Фунцкия принимает имя файла, которое загружено через телеграм-бот (из словаря {'file_name': имя файла}),
@@ -81,16 +80,13 @@ def filename_splitter(filename):
         if name in filename:
             return tuple(filename.split('.'))
 
+
 def is_valid_mime_type(mime_type):
     '''
     Принимает значение по ключу 'mime_type' и проверяет соответствие со значением из списка mime_type_list
     :return: bool
     '''
     return bool([typ for typ in mime_type_list if typ == mime_type])
-
-
-
-
 
 
 def convert_one_file_to_pdf(dirname, filename):
@@ -105,6 +101,7 @@ def convert_one_file_to_pdf(dirname, filename):
     new_height = 800
     resized_image = image.resize(((int(new_height * width / height)), new_height))
     resized_image.save(f'{dirname}/{filename[0]}.pdf', format='PDF', quality=200)
+
 
 def convert_all_files_to_pdf_synco(dirname):
     '''
@@ -121,7 +118,6 @@ def convert_all_files_to_pdf_synco(dirname):
         resized_image = image.resize(((int(new_height * width / height)), new_height))
         resized_image.save(f'{dirname}/{filename[0]}.pdf', format='PDF', quality=200)
     step_by_step_worktime = (datetime.now() - start)
-
 
 
 def pdf_merger(dirname):
@@ -148,7 +144,6 @@ def set_default():
     global filedict
     global dirlist
     dirname, filename, filedict, dirlist = None, None, {}, []
-
 
 
 def delete_all_files(dirname):
