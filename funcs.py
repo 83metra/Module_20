@@ -6,7 +6,7 @@ import main
 from PIL import Image
 from PyPDF2 import PdfMerger
 
-from config import default_dir, dirname, dirlist, filedict, images_extentions
+from config import default_dir, dirname, dirlist, filedict, images_extentions, mime_type_list
 
 step_by_step_worktime = None
 
@@ -80,6 +80,16 @@ def filename_splitter(filename):
     for name in images_extentions:
         if name in filename:
             return tuple(filename.split('.'))
+
+def is_valid_mime_type(mime_type):
+    '''
+    Принимает значение по ключу 'mime_type' и проверяет соответствие со значением из списка mime_type_list
+    :return: bool
+    '''
+    return bool([typ for typ in mime_type_list if typ == mime_type])
+
+
+
 
 
 

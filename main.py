@@ -203,7 +203,7 @@ async def select_action(message, state):
 @dp.message_handler(content_types=types.ContentType.DOCUMENT)
 async def download_image(message):
     photo = message.document
-    if photo['mime_type'] == "image/jpeg":
+    if funcs.is_valid_mime_type(photo['mime_type']):
         try:
             file_info = await bot.get_file(photo.file_id)
             # file_name = photo['file_name']
@@ -215,7 +215,7 @@ async def download_image(message):
                                      reply_markup=kb_2)
 
                 # бот сохраняет файл на диске
-                local_file_path = os.path.join(f'{default_dir}', f"{file_name[0]}.{file_name[1]}")
+                local_file_path = os.path.join(f'{dirname}', f"{file_name[0]}.{file_name[1]}")
                 await bot.download_file(file_path, local_file_path)
             else:
                 await message.answer(f"Изображения загружены в папку 📂 {dirname}. \n"
@@ -223,7 +223,7 @@ async def download_image(message):
                                      reply_markup=convert_in_folder_images)
 
                 # бот сохраняет файл на диске
-                local_file_path = os.path.join(f'{default_dir}', f"{file_name[0]}.{file_name[1]}")
+                local_file_path = os.path.join(f'{dirname}', f"{file_name[0]}.{file_name[1]}")
                 await bot.download_file(file_path, local_file_path)
         except FileIsTooBig as e:
             await message.answer(f'Ошибка: {e}\nФайл слишком большой.')
