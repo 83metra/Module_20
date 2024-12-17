@@ -69,17 +69,17 @@ def files_to_conversion_1(dirpath):
     os.chdir('../')
     return files_to_convert
 
-def is_file_endswith(filename):
+
+
+def filename_splitter(filename):
     '''
-    Функция-костыль принимает имя файла и определяет наличие расширения файла непосредственно в его имени, удаляя его
-    в случае обнаружения. Нужна только для корректного отображения имени файла в боте.
-    :return: возвращая только имя без разрешения
+    Фунцкия принимает имя файла, которое загружено через телеграм-бот (из словаря {'file_name': имя файла}),
+    где оно является строкой. Функция разбивает его на имя файла и его расширение
+    :return: кортеж ('имя файла', 'расширение файла')
     '''
     for name in images_extentions:
         if name in filename:
-            return filename[:-len(name)]
-        else:
-            return filename
+            return tuple(filename.split('.'))
 
 
 

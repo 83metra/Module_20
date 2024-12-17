@@ -60,7 +60,6 @@ async def select_file(call):
     file_list = funcs.files_to_conversion_1(dirname)
     if len(file_list) > 0:
         for index, file in file_list.items():
-            # name = funcs.is_file_endswith(file[0])
             filedict.update({index: (file[0], file[1])})
             await call.message.answer(f'/{index} - {file[0]}.{file[1]}')
             await PathAttr.filename.set()
@@ -75,7 +74,6 @@ async def convert_one_file(message, state):
     global filename
     awaited_filename = await state.get_data()
     for index, file in filedict.items():
-        # name = funcs.is_file_endswith(file[0])
         if str(index) == awaited_filename['filename'][1:] or awaited_filename['filename'] == f'{file[0]}.{file[1]}':
             filename = file
             await message.answer(f"Конвертируем файл {filename[0]}.{filename[1]} в папке 📂 {dirname}.")
@@ -170,7 +168,6 @@ async def sending_merged_pdf(call):
 async def download_one_file_pdf(call):
     global dirname
     global filename
-    # name = funcs.is_file_endswith(filename[0])
     await call.message.answer(f"Загружаем файл '{filename[0]}.pdf' из папки 📂 {dirname}...")
     local_file_path = os.path.join(f'{dirname}', f"{filename[0]}.pdf")
     try:
