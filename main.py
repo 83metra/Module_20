@@ -23,6 +23,11 @@ class PathAttr(StatesGroup):
 
 @dp.message_handler(commands='start')
 async def hallo(message):
+    '''
+    Стартовая функция. Активирует клавиатуру информации и выбора действийЖ конвертации загрузить изображения, или
+    конвертировать из папки
+    Устанавливает установки по умолчанию и удаляет все изображения из временной папки
+    '''
     await message.answer(start, reply_markup=kb)
     funcs.set_default_dir(default_dir)
     funcs.delete_all_files(default_dir)
@@ -31,11 +36,17 @@ async def hallo(message):
 
 @dp.message_handler(text='Информация')
 async def info(message):
+    '''
+    Выводит информацию о работе бота.
+    '''
     await message.answer(text_about, reply_markup=kb)
 
 
 @dp.message_handler(text='Конвертировать изображения в pdf')
 async def privet(message):
+    '''
+    При выбора "Конвертировать изображения в pdf" выводит папки по одной в сообщении с порядковым индексом.
+    '''
     await message.answer(select_dir)
     for directory in funcs.get_dir():
         dirlist.append(directory)
@@ -45,6 +56,9 @@ async def privet(message):
 
 @dp.callback_query_handler(text='convert_else')
 async def convert_else(call):
+    '''
+    При нажатии кнопки "конвертировать ещё изображения" выводит папки по одной в сообщении с порядковым индексом.
+    '''
     funcs.set_default()
     await call.message.answer(select_dir)
     for directory in funcs.get_dir():
@@ -56,6 +70,10 @@ async def convert_else(call):
 
 @dp.callback_query_handler(text='one')
 async def select_file(call):
+    '''
+    Нажатии кнопки "Выбрать один файл" выводит имя файлы по одному в сообщении с порядковым индексом, далее имя файла
+    передаётся в машину состояния.
+    '''
     await call.message.answer(f"Выберите файл в директории {dirname}:")
     file_list = funcs.files_to_conversion_1(dirname)
     if len(file_list) > 0:
@@ -70,6 +88,9 @@ async def select_file(call):
 
 @dp.message_handler(state=PathAttr.filename)
 async def convert_one_file(message, state):
+    '''
+    Конвертирует одно выбранное изображение
+    '''
     await state.update_data(filename=message.text)
     global filename
     awaited_filename = await state.get_data()
@@ -87,6 +108,9 @@ async def convert_one_file(message, state):
 
 @dp.callback_query_handler(text='all')
 async def convert_all_files(call):
+    '''
+    При выборе конвертации всех изображений в папке предлагает способ конвертации
+    '''
     global dirname
     if dirname is None:
         dirname = default_dir
@@ -111,6 +135,9 @@ async def convert_all_files(call):
 
 @dp.callback_query_handler(text='threads')
 async def convert_using_threads(call):
+    '''
+    Конвертирует все изображения в папке с применением потоков
+    '''
     await call.message.answer(f'Конвертация всех файлов в папке 📂 {dirname} с использованием потоков...')
     threads_with_class.convert_files_to_pdf(dirname)
     await call.message.answer(f'Конвертация в папке 📂 {dirname} завершена!\n'
@@ -120,6 +147,9 @@ async def convert_using_threads(call):
 
 @dp.callback_query_handler(text='mltprocess')
 async def convert_using_multiprocessing(call):
+    '''
+    Конвертирует все изображения в папке с применением мультипроцессорности
+    '''
     await call.message.answer(f'Конвертация всех файлов в папке 📂 {dirname} с использованием многопроцессорности...\n'
                               f'Число ядер процессора: {mltprocess.core}')
     mltprocess.convert_files(dirname)
@@ -130,6 +160,9 @@ async def convert_using_multiprocessing(call):
 
 @dp.callback_query_handler(text='step_by_step')
 async def convert_all_step_by_step(call):
+    '''
+    Конвертирует все изображения в выбранной папке последовательно
+    '''
     global dirname
     await call.message.answer(f'Конвертация файлов в папке 📂 {dirname} последовательно...')
     funcs.convert_all_files_to_pdf_synco(dirname)
@@ -139,6 +172,9 @@ async def convert_all_step_by_step(call):
 
 @dp.callback_query_handler(text='multipdf')
 async def multipdf(call):
+    '''
+    Активирует функцию, собирающую многостраничный pdf
+    '''
     funcs.pdf_merger(dirname)
     await call.message.answer(f"Всё файлы собраны в 'all_files_from({dirname}).pdf'",
                               reply_markup=send_multipdf)
@@ -147,6 +183,10 @@ async def multipdf(call):
 
 @dp.message_handler(text='Загрузить изображения для конвертации')
 async def upload_files_to_bot(message):
+    '''
+    При нажатии кнопки "Загрузить изображения для конвертации" устанавливает папку по умолчанию для загрузи и выводит
+    сообщение с инструкцией
+    '''
     global dirname
     dirname = default_dir
     await message.answer(f"Загружайте изображения как документ. "
@@ -156,6 +196,9 @@ async def upload_files_to_bot(message):
 
 @dp.callback_query_handler(text='download_pdf')
 async def sending_merged_pdf(call):
+    '''
+    При нажатии кнопки "Скачать pdf" загружает пользователю многостраничный pdf
+    '''
     global dirname
     try:
         await call.message.answer(f"Загружаем многостраничный pdf из папки 📂 {dirname}...")
@@ -170,6 +213,9 @@ async def sending_merged_pdf(call):
 
 @dp.callback_query_handler(text='download_one')
 async def download_one_file_pdf(call):
+    '''
+    При нажатии кнопки "Скачать pdf" (при конвертации одного файла) загружает пользователю одностраничный pdf
+    '''
     global dirname
     global filename
     await call.message.answer(f"Загружаем файл '{filename[0]}.pdf' из папки 📂 {dirname}...")
@@ -189,6 +235,10 @@ async def download_one_file_pdf(call):
 
 @dp.message_handler(state=PathAttr.dirname)
 async def select_action(message, state):
+    '''
+    Выбирает папку, в которой находятся изображения для конвертации. Имя папки или её порядковый индекс передаётся
+    далее в машину состояния.
+    '''
     await state.update_data(dirname=message.text)
     global dirname
     awaited_directory = await state.get_data()
@@ -206,6 +256,10 @@ async def select_action(message, state):
 
 @dp.message_handler(content_types=types.ContentType.DOCUMENT)
 async def download_image(message):
+    '''
+    Загружает в бот изображения в виде документов и проверяет на соответствие типу изображения.
+    Если изображение в виде документа является изображением, то сохраняет его.
+    '''
     photo = message.document
     if funcs.is_valid_mime_type(photo['mime_type']):
         try:
@@ -236,6 +290,9 @@ async def download_image(message):
 
 @dp.message_handler(content_types=types.ContentType.PHOTO)
 async def handle_photo(message: types.Message):
+    '''
+    При загрузке сжатого изображения выводит текст о том, что изображения нужно отправлять не сжимая.
+    '''
     await message.answer(image_as_document)
 
 
