@@ -27,7 +27,6 @@ class PathAttr(StatesGroup):
 
 # async def on_startup(message):
 #     user_id = 5183258576
-#     crud_functions.set_session(1)
 #     await bot.send_message(user_id, text='Бот запущен.\nДля старта наберите /start.')
 
 
@@ -334,9 +333,5 @@ async def blitz_convertation(message):
 
 
 if __name__ == '__main__':
-    # try:
-    #     funcs.create_doc_table()
-    # except OperationalError as e:
-    #     print(f'Ошибка, таблица уже создана: {e}')
     logging.basicConfig(level=logging.INFO)
     executor.start_polling(dp, skip_updates=True)  # , on_startup=on_startup)
