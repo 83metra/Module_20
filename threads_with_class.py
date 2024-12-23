@@ -4,9 +4,8 @@ from datetime import datetime
 
 import funcs
 
-
-# dirname = 'dir_3'
 working_time = None
+
 
 class ImageToPdf(threading.Thread):
     '''
@@ -22,7 +21,7 @@ class ImageToPdf(threading.Thread):
         self.file_extention = file[1]
 
     def run(self):
-        # print(f'Конвертация {self.filename}.{self.file_extention} в {self.filename}.pdf')
+        # print(f'Конвертация {self.database_name}.{self.file_extention} в {self.database_name}.pdf')
         image = Image.open(f'{self.dirname}/{self.filename}.{self.file_extention}')
         width, height = image.size
         new_height = 800

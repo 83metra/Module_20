@@ -9,6 +9,9 @@ kb = ReplyKeyboardMarkup(
             KeyboardButton(text='Информация')
         ],
         [
+            KeyboardButton(text='Быстрая конвертация')
+        ],
+        [
             KeyboardButton(text='Загрузить изображения для конвертации'),
             KeyboardButton(text='Конвертировать изображения в pdf')
         ]

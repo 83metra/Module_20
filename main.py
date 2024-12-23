@@ -1,9 +1,12 @@
+# import sqlite3
+
 from aiogram import executor, types
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils.exceptions import FileIsTooBig, NetworkError
 import os
-
 from aiogram.types import InputFile
+
+import logging
 
 import mltprocess
 import threads_with_class
@@ -11,6 +14,7 @@ import funcs
 from keyboards import *
 from config import *
 from texts import *
+import crud_functions
 
 
 # aiogram==2.25.1
@@ -21,6 +25,12 @@ class PathAttr(StatesGroup):
     filename = State()
 
 
+# async def on_startup(message):
+#     user_id = 5183258576
+#     crud_functions.set_session(1)
+#     await bot.send_message(user_id, text='Бот запущен.\nДля старта наберите /start.')
+
+
 @dp.message_handler(commands='start')
 async def hallo(message):
     '''
@@ -28,7 +38,10 @@ async def hallo(message):
     конвертировать из папки
     Устанавливает установки по умолчанию и удаляет все изображения из временной папки
     '''
-    await message.answer(start, reply_markup=kb)
+
+    print(message)
+    await message.answer(f'Бот-конвертер приветствует Вас, {message.from_user.full_name}!\nВыберите ниже:',
+                         reply_markup=kb)
     funcs.set_default_dir(default_dir)
     funcs.delete_all_files(default_dir)
     funcs.set_default()
@@ -45,7 +58,7 @@ async def info(message):
 @dp.message_handler(text='Конвертировать изображения в pdf')
 async def privet(message):
     '''
-    При выбора "Конвертировать изображения в pdf" выводит папки по одной в сообщении с порядковым индексом.
+    При выборе "Конвертировать изображения в pdf" выводит папки по одной в сообщении с порядковым индексом.
     '''
     await message.answer(select_dir)
     for directory in funcs.get_dir():
@@ -74,6 +87,7 @@ async def select_file(call):
     Нажатии кнопки "Выбрать один файл" выводит имя файлы по одному в сообщении с порядковым индексом, далее имя файла
     передаётся в машину состояния.
     '''
+
     await call.message.answer(f"Выберите файл в директории {dirname}:")
     file_list = funcs.files_to_conversion_1(dirname)
     if len(file_list) > 0:
@@ -119,7 +133,7 @@ async def convert_all_files(call):
             await call.message.answer('В папке 📂 %s нет изображений, выберите другую.' % (dirname), reply_markup=seldir)
             await call.answer()
         else:
-            await call.message.answer(f'Выберите способ концертации файлов в папке 📂 {dirname}:',
+            await call.message.answer(f'Выберите способ конвертации файлов в папке 📂 {dirname}:',
                                       reply_markup=select_way)
             await call.answer()
     else:
@@ -253,40 +267,56 @@ async def select_action(message, state):
         await state.finish()
 
 
-
 @dp.message_handler(content_types=types.ContentType.DOCUMENT)
 async def download_image(message):
     '''
     Загружает в бот изображения в виде документов и проверяет на соответствие типу изображения.
-    Если изображение в виде документа является изображением, то сохраняет его.
+    Если изображение в виде документа является изображением, то сохраняет его. Добавляет в базу данных список загруженных
+    файлов. Если выбрана быстрая конвертация, то на отправленное изображение возвращает конвертированное.
     '''
+    global dirname
+    if dirname == None:
+        dirname = default_dir
     photo = message.document
+    doc_attributes = funcs.get_document_attr(photo)
+    crud_functions.insert_data_into_database(doc_attributes)
     if funcs.is_valid_mime_type(photo['mime_type']):
+        file_info = await bot.get_file(photo.file_id)
+        file_path = file_info.file_path
+        file_name = funcs.filename_splitter(photo['file_name'])
         try:
-            file_info = await bot.get_file(photo.file_id)
-            # file_name = photo['file_name']
-            file_name = funcs.filename_splitter(photo['file_name'])
-            file_path = file_info.file_path
-            if dirname == default_dir:
-                await message.answer(f"Изображения загружены в папку  по умолчанию 📂 {dirname}.\n"
-                                     f"Можно загрузить ещё файл, либо конвертировать.",
-                                     reply_markup=kb_2)
-
-                # бот сохраняет файл на диске
+            if blitz == True:
                 local_file_path = os.path.join(f'{dirname}', f"{file_name[0]}.{file_name[1]}")
                 await bot.download_file(file_path, local_file_path)
+                funcs.convert_one_file_to_pdf(dirname, file_name, blitz)
+                local_pdf_file_path = os.path.join(f'{dirname}', f"{file_name[0]}.pdf")
+                response_file = InputFile(local_pdf_file_path)
+                await message.answer('Ваш pdf загружается....')
+                await message.reply_document(response_file)
             else:
-                await message.answer(f"Изображения загружены в папку 📂 {dirname}. \n"
-                                     f"Можно загрузить ещё, либо конвертировать.",
-                                     reply_markup=convert_in_folder_images)
+                if dirname == default_dir:
+                    await message.answer(f"Изображения загружены в папку  по умолчанию 📂 {dirname}.\n"
+                                         f"Можно загрузить ещё файл, либо конвертировать.",
+                                         reply_markup=kb_2)
 
-                # бот сохраняет файл на диске
-                local_file_path = os.path.join(f'{dirname}', f"{file_name[0]}.{file_name[1]}")
-                await bot.download_file(file_path, local_file_path)
+                    # бот сохраняет файл на диске
+                    local_file_path = os.path.join(f'{dirname}', f"{file_name[0]}.{file_name[1]}")
+                    await bot.download_file(file_path, local_file_path)
+                else:
+                    await message.answer(f"Изображения загружены в папку 📂 {dirname}. \n"
+                                         f"Можно загрузить ещё, либо конвертировать.",
+                                         reply_markup=convert_in_folder_images)
+
+                    # бот сохраняет файл на диске
+                    local_file_path = os.path.join(f'{dirname}', f"{file_name[0]}.{file_name[1]}")
+                    await bot.download_file(file_path, local_file_path)
+                    # await bot.download_file(file_id)
         except FileIsTooBig as e:
             await message.answer(f'Ошибка: {e}\nФайл слишком большой.')
     else:
-        await message.answer('Кажется, Вы отправили что-то не то!..\nНужно отправить изображение как документ, не сжимая его!')
+        await message.answer(
+            'Кажется, Вы отправили что-то не то!..\nНужно отправить изображение как документ, не сжимая его!')
+
 
 @dp.message_handler(content_types=types.ContentType.PHOTO)
 async def handle_photo(message: types.Message):
@@ -296,5 +326,17 @@ async def handle_photo(message: types.Message):
     await message.answer(image_as_document)
 
 
+@dp.message_handler(text='Быстрая конвертация')
+async def blitz_convertation(message):
+    global blitz
+    await message.answer('Просто загружайте документ как изображение и сразу получите pdf!')
+    blitz = True
+
+
 if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
+    # try:
+    #     funcs.create_doc_table()
+    # except OperationalError as e:
+    #     print(f'Ошибка, таблица уже создана: {e}')
+    logging.basicConfig(level=logging.INFO)
+    executor.start_polling(dp, skip_updates=True)  # , on_startup=on_startup)

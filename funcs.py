@@ -1,8 +1,7 @@
 import os
+import sqlite3
 from datetime import datetime
 
-import main
-# from threads_with_class import ImageToPdf
 from PIL import Image
 from PyPDF2 import PdfMerger
 
@@ -89,7 +88,7 @@ def is_valid_mime_type(mime_type):
     return bool([typ for typ in mime_type_list if typ == mime_type])
 
 
-def convert_one_file_to_pdf(dirname, filename):
+def convert_one_file_to_pdf(dirname, filename, blitz=False):
     '''
     Конвертирует одно изображение в pdf
     :param dirname: имя папки, где находится изображение
@@ -161,3 +160,17 @@ def delete_all_files(dirname):
                     os.remove(file_path)
             except Exception as e:
                 print(f'При удалении файла ошибка: {file_path}. {e}')
+
+
+def get_document_attr(filename):
+    '''
+    Возвращает словарь атрибутов файла, переданного в телеграм-бот
+    '''
+    doc_atributes = {'file_name': filename['file_name'],
+                     'mime_type': filename['mime_type'],
+                     'thumbnail': filename['thumbnail']['file_id'],
+                     'thumb': filename['thumb']['file_id'],
+                     'file_id': filename['file_id'],
+                     'file_unique_id': filename['file_unique_id'],
+                     'file_size': filename['file_size']}
+    return doc_atributes
