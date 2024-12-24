@@ -188,14 +188,17 @@ async def convert_using_multiprocessing(call):
     '''
     Конвертирует все изображения в папке с применением мультипроцессорности
     '''
-    await call.message.answer(f'Конвертация всех файлов в папке 📂 {dirname} с использованием многопроцессорности...\n'
-                              f'Число ядер процессора: {mltprocess.core}')
-    mltprocess.convert_files(dirname)
-    await call.message.answer(f'Конвертация всех файлов в папке 📂 {dirname} завершена!\n'
-                              f'Файлов конвертировано: {mltprocess.count_of_files}\n'
-                              f'Время работы:\n {mltprocess.working_time}', reply_markup=end_conversation)
-    await call.answer()
-
+    try:
+        await call.message.answer(f'Конвертация всех файлов в папке 📂 {dirname} с использованием многопроцессорности...\n'
+                                  f'Число ядер процессора: {mltprocess.core}')
+        mltprocess.convert_files(dirname)
+        await call.message.answer(f'Конвертация всех файлов в папке 📂 {dirname} завершена!\n'
+                                  f'Файлов конвертировано: {mltprocess.count_of_files}\n'
+                                  f'Время работы:\n {mltprocess.working_time}', reply_markup=end_conversation)
+        await call.answer()
+    except InvalidQueryID as e:
+        logging.warning(f'Запрос слишком устарел, и время ожидания ответа истекло, или идентификатор запроса неверен: '
+                        f'{e}')
 
 @dp.callback_query_handler(text='step_by_step')
 async def convert_all_step_by_step(call):
