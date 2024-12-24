@@ -5,7 +5,7 @@ from datetime import datetime
 import funcs
 
 working_time = None
-
+count_of_files = None
 
 class ImageToPdf(threading.Thread):
     '''
@@ -40,7 +40,9 @@ def convert_files_to_pdf(dirname):
     '''
     convert_list = [ImageToPdf(dirname, filename) for filename in funcs.files_to_conversion_1(dirname).values()]
     global working_time
+    global count_of_files
     start = datetime.now()
+    count_of_files = len(convert_list)
     for file_to_convert in convert_list:
         thread = file_to_convert
         thread.start()

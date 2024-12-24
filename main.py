@@ -2,7 +2,7 @@
 
 from aiogram import executor, types
 from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.utils.exceptions import FileIsTooBig, NetworkError
+from aiogram.utils.exceptions import FileIsTooBig, NetworkError, InvalidQueryID, RetryAfter
 import os
 from aiogram.types import InputFile
 
@@ -60,11 +60,14 @@ async def privet(message):
     При выборе "Конвертировать изображения в pdf" выводит папки по одной в сообщении с порядковым индексом.
     '''
     await message.answer(select_dir)
+    # string = ''
     for directory in funcs.get_dir():
         dirlist.append(directory)
+        # string += f'/{directory[0]}- 📂 папка: {directory[1]}\n'
         await message.answer(f'/{directory[0]}- 📂 папка: {directory[1]}')
         await PathAttr.dirname.set()
-
+    # await message.answer(string)
+    # await PathAttr.dirname.set()
 
 @dp.callback_query_handler(text='convert_else')
 async def convert_else(call):
@@ -86,18 +89,28 @@ async def select_file(call):
     Нажатии кнопки "Выбрать один файл" выводит имя файлы по одному в сообщении с порядковым индексом, далее имя файла
     передаётся в машину состояния.
     '''
-
-    await call.message.answer(f"Выберите файл в директории {dirname}:")
-    file_list = funcs.files_to_conversion_1(dirname)
-    if len(file_list) > 0:
-        for index, file in file_list.items():
-            filedict.update({index: (file[0], file[1])})
-            await call.message.answer(f'/{index} - {file[0]}.{file[1]}')
-            await PathAttr.filename.set()
-    else:
-        await call.message.answer('В папке 📂 %s нет изображений, выберите другую.' % (dirname), reply_markup=seldir)
-    await call.answer()
-
+    try:
+        await call.message.answer(f"Выберите файл в директории {dirname}:")
+        file_list = funcs.files_to_conversion_1(dirname)
+        if len(file_list) > 0:
+            # string = ''
+            for index, file in file_list.items():
+                filedict.update({index: (file[0], file[1])})
+                # string += f'/{index} - {file[0]}.{file[1]}\n'
+                await call.message.answer(f'/{index} - {file[0]}.{file[1]}')
+                await PathAttr.filename.set()
+            # await call.message.answer(string)
+            # await PathAttr.filename.set()
+        else:
+            await call.message.answer('В папке 📂 %s нет изображений, выберите другую.' % (dirname), reply_markup=seldir)
+        await call.answer()
+    except:
+        if RetryAfter:
+            logging.warning(f'Потолок наполняемости превышен: {RetryAfter}')
+        elif InvalidQueryID:
+            logging.warning(
+                f'Запрос слишком устарел, и время ожидания ответа истекло, или идентификатор запроса неверен: '
+                f'{InvalidQueryID.match}')
 
 @dp.message_handler(state=PathAttr.filename)
 async def convert_one_file(message, state):
@@ -107,16 +120,21 @@ async def convert_one_file(message, state):
     await state.update_data(filename=message.text)
     global filename
     awaited_filename = await state.get_data()
-    for index, file in filedict.items():
-        if str(index) == awaited_filename['filename'][1:] or awaited_filename['filename'] == f'{file[0]}.{file[1]}':
-            filename = file
-            await message.answer(f"Конвертируем файл {filename[0]}.{filename[1]} в папке 📂 {dirname}.")
-            funcs.convert_one_file_to_pdf(dirname, filename)
-            await message.answer(f"Файл {filename[0]}.pdf в папке 📂 {dirname} готов!", reply_markup=download_one)
-            await state.finish()
-            # funcs.delete_all_files(dirname)
-    if filename is None:
-        await message.reply(f'Такого файла в папке 📂 {dirname} нет!')
+    if awaited_filename['filename'] == '/start':
+        await hallo(message)
+        await state.finish()
+
+    else:
+        for index, file in filedict.items():
+            if str(index) == awaited_filename['filename'][1:] or awaited_filename['filename'] == f'{file[0]}.{file[1]}':
+                filename = file
+                await message.answer(f"Конвертируем файл {filename[0]}.{filename[1]} в папке 📂 {dirname}.")
+                funcs.convert_one_file_to_pdf(dirname, filename)
+                await message.answer(f"Файл {filename[0]}.pdf в папке 📂 {dirname} готов!", reply_markup=download_one)
+                await state.finish()
+                # funcs.delete_all_files(dirname)
+        if filename is None:
+            await message.reply(f'Такого файла в папке 📂 {dirname} нет!')
 
 
 @dp.callback_query_handler(text='all')
@@ -151,12 +169,16 @@ async def convert_using_threads(call):
     '''
     Конвертирует все изображения в папке с применением потоков
     '''
-    await call.message.answer(f'Конвертация всех файлов в папке 📂 {dirname} с использованием потоков...')
-    threads_with_class.convert_files_to_pdf(dirname)
-    await call.message.answer(f'Конвертация в папке 📂 {dirname} завершена!\n'
-                              f'Время работы:\n{threads_with_class.working_time}', reply_markup=end_conversation)
-    await call.answer()
-
+    try:
+        await call.message.answer(f'Конвертация всех файлов в папке 📂 {dirname} с использованием потоков...')
+        threads_with_class.convert_files_to_pdf(dirname)
+        await call.message.answer(f'Конвертация в папке 📂 {dirname} завершена!\n'
+                                  f'Файлов конвертировано: {threads_with_class.count_of_files}\n'
+                                  f'Время работы:\n{threads_with_class.working_time}', reply_markup=end_conversation)
+        await call.answer()
+    except InvalidQueryID as e:
+        logging.warning(f'Запрос слишком устарел, и время ожидания ответа истекло, или идентификатор запроса неверен: '
+                        f'{e}')
 
 @dp.callback_query_handler(text='mltprocess')
 async def convert_using_multiprocessing(call):
@@ -167,6 +189,7 @@ async def convert_using_multiprocessing(call):
                               f'Число ядер процессора: {mltprocess.core}')
     mltprocess.convert_files(dirname)
     await call.message.answer(f'Конвертация всех файлов в папке 📂 {dirname} завершена!\n'
+                              f'Файлов конвертировано: {mltprocess.count_of_files}\n'
                               f'Время работы:\n {mltprocess.working_time}', reply_markup=end_conversation)
     await call.answer()
 
@@ -176,11 +199,17 @@ async def convert_all_step_by_step(call):
     '''
     Конвертирует все изображения в выбранной папке последовательно
     '''
-    global dirname
-    await call.message.answer(f'Конвертация файлов в папке 📂 {dirname} последовательно...')
-    funcs.convert_all_files_to_pdf_synco(dirname)
-    await call.message.answer(f'Конвертация всех файлов в папке 📂 {dirname} завершена!\n'
-                              f'Время работы:\n{funcs.step_by_step_worktime}', reply_markup=end_conversation)
+    try:
+        global dirname
+        await call.message.answer(f'Конвертация файлов в папке 📂 {dirname} последовательно...')
+        funcs.convert_all_files_to_pdf_synco(dirname)
+        await call.message.answer(f'Конвертация всех файлов в папке 📂 {dirname} завершена!\n'
+                                  f'Файлов конвертировано: {funcs.count_of_files}\n'
+                                  f'Время работы:\n{funcs.step_by_step_worktime}', reply_markup=end_conversation)
+        await call.answer()
+    except InvalidQueryID as e:
+        logging.warning(f'Запрос слишком устарел, и время ожидания ответа истекло, или идентификатор запроса неверен: '
+                        f'{e}')
 
 
 @dp.callback_query_handler(text='multipdf')
@@ -255,15 +284,19 @@ async def select_action(message, state):
     await state.update_data(dirname=message.text)
     global dirname
     awaited_directory = await state.get_data()
-    for name in dirlist:
-        if str(name[0]) == (awaited_directory['dirname'][1:]) or name[1] == awaited_directory['dirname']:
-            dirname = name[1]
-    if dirname is None:
-        await message.answer(wrong_dirname, reply_markup=seldir)
+    if awaited_directory['dirname'] == '/start':
+        await hallo(message)
         await state.finish()
     else:
-        await message.answer(select_way_of_conv, reply_markup=kb_2)
-        await state.finish()
+        for name in dirlist:
+            if str(name[0]) == (awaited_directory['dirname'][1:]) or name[1] == awaited_directory['dirname']:
+                dirname = name[1]
+        if dirname is None:
+            await message.answer(wrong_dirname, reply_markup=seldir)
+            await state.finish()
+        else:
+            await message.answer(select_way_of_conv, reply_markup=kb_2)
+            await state.finish()
 
 
 @dp.message_handler(content_types=types.ContentType.DOCUMENT)

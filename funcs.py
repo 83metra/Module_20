@@ -1,6 +1,9 @@
 import os
 import sqlite3
 from datetime import datetime
+import logging
+from aiogram.utils.exceptions import FileIsTooBig, NetworkError, InvalidQueryID, RetryAfter
+
 
 from PIL import Image
 from PyPDF2 import PdfMerger
@@ -8,6 +11,7 @@ from PyPDF2 import PdfMerger
 from config import default_dir, dirname, dirlist, filedict, images_extentions, mime_type_list
 
 step_by_step_worktime = None
+count_of_files = None
 
 
 def get_dir():
@@ -109,6 +113,8 @@ def convert_all_files_to_pdf_synco(dirname):
     :return:
     '''
     global step_by_step_worktime
+    global count_of_files
+    count_of_files = len(files_to_conversion_1(dirname))
     start = datetime.now()
     for filename in files_to_conversion_1(dirname).values():
         image = Image.open(f'{dirname}/{filename[0]}.{filename[1]}')
